@@ -1,0 +1,687 @@
+(function(exports) {
+
+//#region rolldown:runtime
+var __create = Object.create;
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __commonJS = (cb, mod) => function() {
+	return mod || (0, cb[__getOwnPropNames(cb)[0]])((mod = { exports: {} }).exports, mod), mod.exports;
+};
+var __copyProps = (to, from, except, desc) => {
+	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
+		key = keys[i];
+		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
+			get: ((k) => from[k]).bind(null, key),
+			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
+		});
+	}
+	return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
+	value: mod,
+	enumerable: true
+}) : target, mod));
+
+//#endregion
+
+//#region api/dorion.ts
+var dorion_default = {
+	name: "Dorion",
+	invoke: (name, payload) => {
+		if (window.__TAURI__?.invoke) return window.__TAURI__.invoke(name, payload);
+else return window.__TAURI__.core.invoke(name, payload);
+	},
+	event: {
+		emit: (name, payload) => {
+			return window.__TAURI__.event.emit(name, payload);
+		},
+		listen: async (name, callback) => {
+			return window.__TAURI__.event.listen(name, callback);
+		}
+	},
+	app: { getVersion: () => {
+		return window.__TAURI__.app.getVersion();
+	} },
+	process: { relaunch: () => {
+		return window.__TAURI__.process.relaunch();
+	} },
+	apiWindow: { appWindow: { setFullscreen: (isFullscreen) => {
+		if (window.__TAURI__?.webviewWindow?.getCurrentWebviewWindow) return window.__TAURI__.webviewWindow.getCurrentWebviewWindow().setFullscreen(isFullscreen);
+else return window.__TAURI__.window.appWindow.setFullscreen(isFullscreen);
+	} } }
+};
+
+//#endregion
+//#region api/flooed.ts
+var flooed_default = {
+	name: "Flooed",
+	invoke: (name, payload) => {
+		return window.Flooed.invoke(name, payload);
+	},
+	event: {
+		emit: () => {},
+		listen: async () => {}
+	},
+	app: { getVersion: () => {
+		return window.Flooed.version;
+	} },
+	process: { relaunch: () => {
+		return window.Flooed.invoke("relaunch");
+	} },
+	apiWindow: { appWindow: { setFullscreen: (isFullscreen) => {
+		return window.Flooed.invoke("set_fullscreen", isFullscreen);
+	} } }
+};
+
+//#endregion
+//#region api/none.ts
+var none_default = {
+	name: "Unknown",
+	invoke: async () => {},
+	event: {
+		emit: () => {},
+		listen: async () => {}
+	},
+	app: { getVersion: () => "0.0.0" },
+	process: { relaunch: () => {} },
+	apiWindow: { appWindow: { setFullscreen: () => {} } }
+};
+
+//#endregion
+//#region api/api.ts
+let backendName = "None";
+if (window.Dorion) backendName = "Dorion";
+else if (window.Flooed) backendName = "Flooed";
+let backendObj;
+switch (backendName) {
+	case "Dorion":
+		backendObj = dorion_default;
+		break;
+	case "Flooed":
+		backendObj = flooed_default;
+		break;
+	default:
+		backendObj = none_default;
+		break;
+}
+const api = window[backendName];
+const appName = backendObj.name;
+const invoke = backendObj.invoke;
+const event = backendObj.event;
+const app = backendObj.app;
+const process = backendObj.process;
+const apiWindow = backendObj.apiWindow;
+
+//#endregion
+//#region solid-js/web
+var require_web = __commonJS({ "solid-js/web"(exports, module) {
+	module.exports = shelter.solidWeb;
+} });
+
+//#endregion
+//#region util/debounce.ts
+const debounce = (fn, delay) => {
+	let timer = null;
+	return (...args) => {
+		if (timer) clearTimeout(timer);
+		timer = setTimeout(() => {
+			fn.apply(void 0, args);
+		}, delay);
+	};
+};
+
+//#endregion
+//#region plugins/dorion-theme-browser/api.ts
+const BASE = "https://betterdiscord.app";
+const themeListEndpoint = async (options) => {
+	const query = new URLSearchParams(options);
+	query.set("type", "theme");
+	query.set("pages", "1");
+	query.set("sortDirection", "descending");
+	query.set("tags", "[]");
+	const resp = await fetch(`${BASE}/Addon/GetApprovedAddons?${query}`);
+	if (!resp.ok) throw new Error("Failed to fetch themes");
+	const parser = new DOMParser();
+	const dom = parser.parseFromString(await resp.text(), "text/html");
+	const themes = await Promise.all(Array.from(dom.querySelectorAll(".card-wrap")).map(async (e) => ({
+		thumbnail: await api.util.fetchImage(`${BASE}${e.querySelector(".card-image")?.getAttribute("src")}`),
+		name: e.querySelector(".card-title")?.textContent?.trim(),
+		author: e.querySelector(".author-link")?.textContent?.trim(),
+		description: e.querySelector(".card-description")?.textContent?.trim(),
+		likes: e.querySelector("#addon-likes")?.textContent?.trim(),
+		downloads: e.querySelector("#addon-downloads")?.textContent?.trim(),
+		install_url: `${BASE}${e.querySelector(".btn-primary")?.getAttribute("href")}`
+	})));
+	return themes;
+};
+
+//#endregion
+//#region util/theme.ts
+const installAndLoad = async (link, statusUpdater, filename) => {
+	statusUpdater("Fetching...");
+	const themeName = await invoke("theme_from_link", {
+		link,
+		filename
+	});
+	statusUpdater(`Applying ${themeName} ...`);
+	const config = JSON.parse(await invoke("read_config_file"));
+	config?.themes?.push(themeName);
+	statusUpdater("Saving...");
+	await invoke("write_config_file", { contents: JSON.stringify(config) });
+	await reloadThemes();
+	statusUpdater("Done!");
+	return themeName;
+};
+const reloadThemes = async () => {
+	const themeTag = document.getElementById(`${appName.toLowerCase()}-theme`);
+	const themeContents = await invoke("get_themes").catch((e) => console.error(e));
+	const themeNames = await invoke("get_enabled_themes").catch((e) => console.error(e)) || [];
+	const themeName = themeNames.join("").substring(0, 254);
+	if (themeName === "") {
+		themeTag.innerHTML = "";
+		return;
+	}
+	const localized = await invoke("localize_imports", {
+		css: themeContents,
+		name: themeName
+	});
+	const contents = api.util.cssSanitize(localized);
+	themeTag.innerHTML = contents;
+};
+
+//#endregion
+//#region util/modal.tsx
+var import_web$17 = __toESM(require_web(), 1);
+const { ui: { ModalRoot, ModalHeader, ModalBody, ModalConfirmFooter } } = shelter;
+const basicModal = (props) => (0, import_web$17.createComponent)(ModalRoot, { get children() {
+	return [(0, import_web$17.createComponent)(ModalHeader, { get children() {
+		return props.header;
+	} }), (0, import_web$17.createComponent)(ModalBody, { get children() {
+		return props.body;
+	} })];
+} });
+
+//#endregion
+//#region util/i18n.tsx
+function t(key, replace) {
+	const lang = window.__DORION_LANG ?? "en";
+	const translations = window.__DORION_TRANSLATIONS;
+	let value = translations?.[lang];
+	for (const k of key.split(".")) {
+		value = value?.[k];
+		if (value == null) return key;
+	}
+	if (!replace) return value;
+	const parts = [];
+	const regex = /\{\{\s*(\w+)\s*\}\}/g;
+	let lastIndex = 0;
+	let hasNode = false;
+	for (const match of value.matchAll(regex)) {
+		const [raw, name] = match;
+		const index = match.index;
+		if (index > lastIndex) parts.push(value.slice(lastIndex, index));
+		const replacement = replace[name];
+		if (replacement !== undefined) {
+			parts.push(replacement);
+			if (typeof replacement !== "string") hasNode = true;
+		} else parts.push(raw);
+		lastIndex = index + raw.length;
+	}
+	if (lastIndex < value.length) parts.push(value.slice(lastIndex));
+	return hasNode ? parts : parts.join("");
+}
+
+//#endregion
+//#region plugins/dorion-theme-browser/components/ThemeCard.tsx.scss
+const classes$1 = {
+	"name": "JQAzuG_name",
+	"contents": "JQAzuG_contents",
+	"themeCard": "JQAzuG_themeCard",
+	"installButton": "JQAzuG_installButton",
+	"info": "JQAzuG_info",
+	"thumbnail": "JQAzuG_thumbnail"
+};
+const css$1 = `.JQAzuG_themeCard {
+  text-align: left;
+  color: var(--text-default);
+  background: var(--background-surface-highest);
+  border-radius: 8px;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: flex-start;
+  margin: 8px;
+  padding: 0;
+  display: flex;
+}
+
+.JQAzuG_themeCard .JQAzuG_thumbnail {
+  background-position: center;
+  background-size: cover;
+  border-radius: 8px 8px 0 0;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+}
+
+.JQAzuG_themeCard .JQAzuG_info {
+  text-overflow: ellipsis;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 6px;
+  padding: 16px;
+  display: flex;
+  overflow: hidden;
+}
+
+.JQAzuG_themeCard .JQAzuG_info .JQAzuG_name, .JQAzuG_themeCard .JQAzuG_info .JQAzuG_contents, .JQAzuG_themeCard .JQAzuG_info .JQAzuG_installButton {
+  margin-bottom: 8px;
+}
+
+.JQAzuG_themeCard .JQAzuG_info .JQAzuG_installButton {
+  width: 100%;
+  margin-top: 8px;
+}
+`;
+
+//#endregion
+//#region plugins/dorion-theme-browser/components/ThemeCard.tsx
+var import_web$9 = __toESM(require_web(), 1);
+var import_web$10 = __toESM(require_web(), 1);
+var import_web$11 = __toESM(require_web(), 1);
+var import_web$12 = __toESM(require_web(), 1);
+var import_web$13 = __toESM(require_web(), 1);
+var import_web$14 = __toESM(require_web(), 1);
+var import_web$15 = __toESM(require_web(), 1);
+var import_web$16 = __toESM(require_web(), 1);
+const _tmpl$$1 = /*#__PURE__*/ (0, import_web$9.template)(`<b></b>`, 2), _tmpl$2$1 = /*#__PURE__*/ (0, import_web$9.template)(`<div><div></div><div><!#><!/><!#><!/><div></div></div></div>`, 12), _tmpl$3$1 = /*#__PURE__*/ (0, import_web$9.template)(`<div><div></div></div>`, 4);
+const { ui: { injectCss: injectCss$1, Button, Text, openModal }, solid: { createSignal: createSignal$1, createEffect: createEffect$1 } } = shelter;
+let injectedCss$1 = false;
+function ThemeCard(props) {
+	if (!injectedCss$1) {
+		injectCss$1(css$1);
+		injectedCss$1 = true;
+	}
+	console.log(props);
+	return (() => {
+		const _el$ = (0, import_web$15.getNextElement)(_tmpl$2$1), _el$2 = _el$.firstChild, _el$3 = _el$2.nextSibling, _el$7 = _el$3.firstChild, [_el$8, _co$] = (0, import_web$13.getNextMarker)(_el$7.nextSibling), _el$9 = _el$8.nextSibling, [_el$0, _co$2] = (0, import_web$13.getNextMarker)(_el$9.nextSibling), _el$6 = _el$0.nextSibling;
+		(0, import_web$16.insert)(_el$3, (0, import_web$14.createComponent)(Text, {
+			get ["class"]() {
+				return classes$1.name;
+			},
+			get children() {
+				return [
+					(() => {
+						const _el$4 = (0, import_web$15.getNextElement)(_tmpl$$1);
+						(0, import_web$16.insert)(_el$4, () => props.theme);
+						return _el$4;
+					})(),
+					" by ",
+					(() => {
+						const _el$5 = (0, import_web$15.getNextElement)(_tmpl$$1);
+						(0, import_web$16.insert)(_el$5, () => props.author);
+						return _el$5;
+					})()
+				];
+			}
+		}), _el$8, _co$);
+		(0, import_web$16.insert)(_el$3, (0, import_web$14.createComponent)(Text, {
+			get ["class"]() {
+				return classes$1.contents;
+			},
+			get children() {
+				return props.description;
+			}
+		}), _el$0, _co$2);
+		(0, import_web$16.insert)(_el$6, (0, import_web$14.createComponent)(Button, {
+			get ["class"]() {
+				return classes$1.installButton;
+			},
+			onClick: () => themeInstallationModel(props.install_url, props.theme),
+			get children() {
+				return t("dorion_theme_card.install");
+			}
+		}));
+		(0, import_web$12.effect)((_p$) => {
+			const _v$ = classes$1.themeCard, _v$2 = classes$1.thumbnail, _v$3 = `background-image: url(${props.thumbnail})`, _v$4 = classes$1.info, _v$5 = classes$1.buttonContainer;
+			_v$ !== _p$._v$ && (0, import_web$11.className)(_el$, _p$._v$ = _v$);
+			_v$2 !== _p$._v$2 && (0, import_web$11.className)(_el$2, _p$._v$2 = _v$2);
+			_p$._v$3 = (0, import_web$10.style)(_el$2, _v$3, _p$._v$3);
+			_v$4 !== _p$._v$4 && (0, import_web$11.className)(_el$3, _p$._v$4 = _v$4);
+			_v$5 !== _p$._v$5 && (0, import_web$11.className)(_el$6, _p$._v$5 = _v$5);
+			return _p$;
+		}, {
+			_v$: undefined,
+			_v$2: undefined,
+			_v$3: undefined,
+			_v$4: undefined,
+			_v$5: undefined
+		});
+		return _el$;
+	})();
+}
+const themeInstallationModel = async (link, name) => {
+	const [status, setStatus] = createSignal$1("");
+	const [closeFn, setCloseFn] = createSignal$1(() => {});
+	createEffect$1(async () => {
+		await installAndLoad(link, (s) => {
+			setStatus(s);
+			console.log(s);
+		}, name).catch((e) => {
+			setStatus(e);
+		});
+		closeFn();
+	});
+	openModal((props) => {
+		setCloseFn(props.close);
+		return basicModal({
+			header: t("dorion_theme_card.install"),
+			body: (() => {
+				const _el$1 = (0, import_web$15.getNextElement)(_tmpl$3$1), _el$10 = _el$1.firstChild;
+				_el$10.style.setProperty("display", "flex");
+				_el$10.style.setProperty("justify-content", "center");
+				_el$10.style.setProperty("align-items", "center");
+				_el$10.style.setProperty("height", "24px");
+				(0, import_web$16.insert)(_el$10, (0, import_web$14.createComponent)(Text, { get children() {
+					return status();
+				} }));
+				return _el$1;
+			})()
+		});
+	});
+};
+
+//#endregion
+//#region plugins/dorion-theme-browser/components/ThemePage.tsx.scss
+const classes = {
+	"pagesOuter": "gqruia_pagesOuter",
+	"bot16": "gqruia_bot16",
+	"pages": "gqruia_pages",
+	"themeCards": "gqruia_themeCards",
+	"shead": "gqruia_shead",
+	"searchBox": "gqruia_searchBox",
+	"pageBtn": "gqruia_pageBtn",
+	"sortSection": "gqruia_sortSection"
+};
+const css = `.gqruia_shead {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.gqruia_bot16 {
+  margin-bottom: 16px;
+}
+
+.gqruia_themeCards {
+  grid-gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
+  margin-top: 16px;
+  display: grid;
+}
+
+.gqruia_sortSection {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  display: flex;
+}
+
+.gqruia_searchBox {
+  width: 50%;
+  flex-grow: 0 !important;
+}
+
+.gqruia_pagesOuter {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  display: flex;
+}
+
+.gqruia_pages {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 30%;
+  margin-top: 16px;
+  display: flex;
+}
+
+.gqruia_pageBtn {
+  color: var(--text-default);
+  cursor: pointer;
+}
+
+.gqruia_pageBtn:hover {
+  text-decoration: underline;
+}
+
+input[type="number"] {
+  text-align: center;
+  background-color: var(--background-base-lowest);
+  width: 50px;
+  color: var(--text-default);
+  -moz-appearance: textfield;
+  appearance: textfield;
+  border: none;
+  border-radius: 4px;
+  margin: 0 8px;
+  padding: 4px;
+  font-size: 16px;
+}
+
+input::-webkit-outer-spin-button, input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+`;
+
+//#endregion
+//#region plugins/dorion-theme-browser/components/ThemePage.tsx
+var import_web = __toESM(require_web(), 1);
+var import_web$1 = __toESM(require_web(), 1);
+var import_web$2 = __toESM(require_web(), 1);
+var import_web$3 = __toESM(require_web(), 1);
+var import_web$4 = __toESM(require_web(), 1);
+var import_web$5 = __toESM(require_web(), 1);
+var import_web$6 = __toESM(require_web(), 1);
+var import_web$7 = __toESM(require_web(), 1);
+var import_web$8 = __toESM(require_web(), 1);
+const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<div><!#><!/><span></span></div>`, 6), _tmpl$2 = /*#__PURE__*/ (0, import_web.template)(`<div></div>`, 2), _tmpl$3 = /*#__PURE__*/ (0, import_web.template)(`<div><div><div>&lt; <!#><!/></div><input type="number"><div><!#><!/> &gt;</div></div></div>`, 13);
+const { ui: { injectCss, Divider, Header, HeaderTags, TextBox, Select, SelectOption }, solid: { createSignal, createEffect } } = shelter;
+let injectedCss = false;
+function ThemePage() {
+	if (!injectedCss) {
+		injectCss(css);
+		injectedCss = true;
+	}
+	const [themeData, setThemeData] = createSignal([]);
+	const [page, setPage] = createSignal(1);
+	const [sort, setSort] = createSignal("popular");
+	const [search, setSearch] = createSignal("");
+	createEffect(async () => {
+		await loadThemes();
+	});
+	const loadThemes = async () => {
+		setThemeData(await themeListEndpoint({
+			page: page().toString(),
+			sort: sort(),
+			filter: search()
+		}));
+	};
+	const doSearch = debounce((v) => setSearch(v), 500);
+	return [
+		(0, import_web$8.createComponent)(Header, {
+			get tag() {
+				return HeaderTags.H1;
+			},
+			get ["class"]() {
+				return classes.tophead;
+			},
+			get children() {
+				return t("dorion_themes.title");
+			}
+		}),
+		(() => {
+			const _el$ = (0, import_web$5.getNextElement)(_tmpl$), _el$3 = _el$.firstChild, [_el$4, _co$] = (0, import_web$6.getNextMarker)(_el$3.nextSibling), _el$2 = _el$4.nextSibling;
+			(0, import_web$7.insert)(_el$, (0, import_web$8.createComponent)(Select, {
+				get value() {
+					return sort();
+				},
+				onChange: (v) => {
+					setSort(String(v));
+					loadThemes();
+				},
+				style: { width: "30%" },
+				get placeholder() {
+					return t("dorion_themes.sort_by");
+				},
+				get children() {
+					return [
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "popular",
+							get children() {
+								return t("dorion_themes.popular");
+							}
+						}),
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "creationdate",
+							get children() {
+								return t("dorion_themes.creation_date");
+							}
+						}),
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "name",
+							get children() {
+								return t("dorion_themes.name");
+							}
+						}),
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "likes",
+							get children() {
+								return t("dorion_themes.likes");
+							}
+						}),
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "downloads",
+							get children() {
+								return t("dorion_themes.downloads");
+							}
+						}),
+						(0, import_web$8.createComponent)(SelectOption, {
+							value: "recentlyupdated",
+							get children() {
+								return t("dorion_themes.recently_updated");
+							}
+						})
+					];
+				}
+			}), _el$4, _co$);
+			(0, import_web$7.insert)(_el$2, (0, import_web$8.createComponent)(TextBox, {
+				get value() {
+					return search();
+				},
+				onInput: (v) => doSearch(v),
+				get placeholder() {
+					return t("dorion_themes.search_placeholder");
+				}
+			}));
+			(0, import_web$4.effect)((_p$) => {
+				const _v$ = classes.sortSection, _v$2 = classes.searchBox;
+				_v$ !== _p$._v$ && (0, import_web$3.className)(_el$, _p$._v$ = _v$);
+				_v$2 !== _p$._v$2 && (0, import_web$3.className)(_el$2, _p$._v$2 = _v$2);
+				return _p$;
+			}, {
+				_v$: undefined,
+				_v$2: undefined
+			});
+			return _el$;
+		})(),
+		(0, import_web$8.createComponent)(Divider, {
+			mt: 16,
+			mb: 16
+		}),
+		(() => {
+			const _el$5 = (0, import_web$5.getNextElement)(_tmpl$2);
+			(0, import_web$7.insert)(_el$5, () => themeData().map((t$1) => (0, import_web$8.createComponent)(ThemeCard, {
+				get key() {
+					return t$1.name;
+				},
+				get thumbnail() {
+					return t$1.thumbnail;
+				},
+				get likes() {
+					return t$1.likes;
+				},
+				get downloads() {
+					return t$1.downloads;
+				},
+				get theme() {
+					return t$1.name;
+				},
+				get description() {
+					return t$1.description;
+				},
+				get author() {
+					return t$1.author;
+				},
+				get install_url() {
+					return t$1.install_url;
+				}
+			})));
+			(0, import_web$4.effect)(() => (0, import_web$3.className)(_el$5, classes.themeCards));
+			return _el$5;
+		})(),
+		(() => {
+			const _el$6 = (0, import_web$5.getNextElement)(_tmpl$3), _el$7 = _el$6.firstChild, _el$8 = _el$7.firstChild, _el$9 = _el$8.firstChild, _el$0 = _el$9.nextSibling, [_el$1, _co$2] = (0, import_web$6.getNextMarker)(_el$0.nextSibling), _el$10 = _el$8.nextSibling, _el$11 = _el$10.nextSibling, _el$13 = _el$11.firstChild, [_el$14, _co$3] = (0, import_web$6.getNextMarker)(_el$13.nextSibling), _el$12 = _el$14.nextSibling;
+			_el$8.$$click = () => {
+				setPage(page() - 1);
+				loadThemes();
+			};
+			(0, import_web$7.insert)(_el$8, () => t("common.previous"), _el$1, _co$2);
+			_el$10.$$input = (e) => setPage(parseInt(e.target.value));
+			_el$11.$$click = () => {
+				setPage(page() + 1);
+				loadThemes();
+			};
+			(0, import_web$7.insert)(_el$11, () => t("common.next"), _el$14, _co$3);
+			(0, import_web$4.effect)((_p$) => {
+				const _v$3 = classes.pagesOuter, _v$4 = classes.pages, _v$5 = classes.pageBtn, _v$6 = classes.pageBtn;
+				_v$3 !== _p$._v$3 && (0, import_web$3.className)(_el$6, _p$._v$3 = _v$3);
+				_v$4 !== _p$._v$4 && (0, import_web$3.className)(_el$7, _p$._v$4 = _v$4);
+				_v$5 !== _p$._v$5 && (0, import_web$3.className)(_el$8, _p$._v$5 = _v$5);
+				_v$6 !== _p$._v$6 && (0, import_web$3.className)(_el$11, _p$._v$6 = _v$6);
+				return _p$;
+			}, {
+				_v$3: undefined,
+				_v$4: undefined,
+				_v$5: undefined,
+				_v$6: undefined
+			});
+			(0, import_web$4.effect)(() => _el$10.value = page());
+			(0, import_web$2.runHydrationEvents)();
+			return _el$6;
+		})()
+	];
+}
+(0, import_web$1.delegateEvents)(["click", "input"]);
+
+//#endregion
+//#region plugins/dorion-theme-browser/index.ts
+const { settings: { registerSection } } = shelter;
+const uninjects = [
+	registerSection("divider"),
+	registerSection("header", "Theme Browser"),
+	registerSection("section", `${appName}-theme-browser`, "Theme Browser", ThemePage)
+];
+const onUnload = () => {
+	uninjects.forEach((u) => u());
+};
+
+//#endregion
+exports.onUnload = onUnload
+return exports;
+})({});
