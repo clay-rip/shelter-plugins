@@ -12,6 +12,7 @@ const {
     HeaderTags,
     TextBox,
     Text,
+    SwitchItem,
     showToast,
     injectCss
   },
@@ -256,11 +257,13 @@ export const onLoad = async () => {
     scheduleReconnect()
   }
 
-  showToast({
-    title: 'ShelteRPC',
-    content: 'Connected to ShelteRPC server',
-    duration: 3000,
-  })
+  if (store.showConnectNotif) {
+    showToast({
+      title: 'ShelteRPC',
+      content: 'Connected to ShelteRPC server',
+      duration: 3000,
+    })
+  }
 }
 
 export const onUnload = async () => {
@@ -312,5 +315,13 @@ export const settings = () => (
         type="text"
       />
     </div>
+
+    <SwitchItem
+      value={store.showConnectNotif}
+      onChange={(v) => (store.showConnectNotif = v)}
+      tooltip="Show a toast when ShelteRPC successfully connects."
+    >
+      Show Connect Notification
+    </SwitchItem>
   </>
 )

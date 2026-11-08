@@ -1,8 +1,9 @@
 import dorionBackend from './dorion.js'
 import flooedBackend from './flooed.js'
+import clayentBackend from './clayent.js'
 import noneBackend from './none.js'
 
-type BackendName = 'Dorion' | 'Flooed' | 'None'
+type BackendName = 'Dorion' | 'Flooed' | 'Clayent' | 'None'
 
 interface GlobalApi {
   util: {
@@ -23,6 +24,11 @@ declare global {
       version: string
       name: string
     }
+    Clayent?: {
+      invoke: (name: string, payload?: any) => Promise<any>
+      emit: (name: string, payload?: any) => void
+      listen: (name: string, callback: (payload: any) => void) => () => void
+    }
   }
 }
 
@@ -33,6 +39,8 @@ if (window.Dorion) {
   backendName = 'Dorion'
 } else if (window.Flooed) {
   backendName = 'Flooed'
+} else if (window.Clayent) {
+  backendName = 'Clayent'
 }
 
 // As much as I hate doing a runtime check (bundle size go brazy), it's the only real way to make this work
@@ -44,6 +52,9 @@ case 'Dorion':
   break
 case 'Flooed':
   backendObj = flooedBackend
+  break
+case 'Clayent':
+  backendObj = clayentBackend
   break
 default:
   backendObj = noneBackend

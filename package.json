@@ -32,5 +32,9 @@
     "@uwu/shelter-defs": "^1.5.1",
     "globals": "^15.15.0",
     "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "esbuild@0.17.19": true
   }
 }
