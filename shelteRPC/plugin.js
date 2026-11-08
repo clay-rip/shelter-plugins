@@ -83,6 +83,32 @@ var flooed_default = {
 };
 
 //#endregion
+//#region api/clayent.ts
+var clayent_default = {
+	name: "Clayent",
+	invoke: (name, payload) => {
+		return window.Clayent.invoke(name, payload);
+	},
+	event: {
+		emit: (name, payload) => {
+			return window.Clayent.emit(name, payload);
+		},
+		listen: async (name, callback) => {
+			return window.Clayent.listen(name, callback);
+		}
+	},
+	app: { getVersion: () => {
+		return window.Clayent.invoke("get_version");
+	} },
+	process: { relaunch: () => {
+		return window.Clayent.invoke("relaunch");
+	} },
+	apiWindow: { appWindow: { setFullscreen: (isFullscreen) => {
+		return window.Clayent.invoke("set_fullscreen", isFullscreen);
+	} } }
+};
+
+//#endregion
 //#region api/none.ts
 var none_default = {
 	name: "Unknown",
@@ -101,6 +127,7 @@ var none_default = {
 let backendName = "None";
 if (window.Dorion) backendName = "Dorion";
 else if (window.Flooed) backendName = "Flooed";
+else if (window.Clayent) backendName = "Clayent";
 let backendObj;
 switch (backendName) {
 	case "Dorion":
@@ -108,6 +135,9 @@ switch (backendName) {
 		break;
 	case "Flooed":
 		backendObj = flooed_default;
+		break;
+	case "Clayent":
+		backendObj = clayent_default;
 		break;
 	default:
 		backendObj = none_default;
@@ -140,16 +170,16 @@ const timestampToRelative = (timestamp) => {
 //#endregion
 //#region plugins/shelteRPC/components/GameCard.scss
 const classes$2 = {
-	"cardPlayed": "zS7Qtq_cardPlayed",
+	"cardNone": "zS7Qtq_cardNone",
+	"gameCardIcons": "zS7Qtq_gameCardIcons",
 	"gameCardInfo": "zS7Qtq_gameCardInfo",
 	"gameCardLastPlayed": "zS7Qtq_gameCardLastPlayed",
-	"gameCardIcons": "zS7Qtq_gameCardIcons",
-	"trash": "zS7Qtq_trash",
 	"gameCard": "zS7Qtq_gameCard",
-	"lastPlayedTimestamp": "zS7Qtq_lastPlayedTimestamp",
-	"cardNone": "zS7Qtq_cardNone",
+	"gameCardName": "zS7Qtq_gameCardName",
+	"trash": "zS7Qtq_trash",
 	"cardPlaying": "zS7Qtq_cardPlaying",
-	"gameCardName": "zS7Qtq_gameCardName"
+	"lastPlayedTimestamp": "zS7Qtq_lastPlayedTimestamp",
+	"cardPlayed": "zS7Qtq_cardPlayed"
 };
 const css$2 = `.zS7Qtq_gameCard {
   width: 100%;
@@ -333,11 +363,11 @@ var GameCard_default = (props) => {
 //#endregion
 //#region plugins/shelteRPC/components/RegisteredGames.scss
 const classes$1 = {
-	"modalhead": "yVnOSq_modalhead",
 	"description": "yVnOSq_description",
-	"tophead": "yVnOSq_tophead",
+	"addIt": "yVnOSq_addIt",
+	"modalhead": "yVnOSq_modalhead",
 	"shead": "yVnOSq_shead",
-	"addIt": "yVnOSq_addIt"
+	"tophead": "yVnOSq_tophead"
 };
 const css$1 = `.yVnOSq_description {
   margin-top: 8px;
@@ -550,7 +580,7 @@ var import_web$4 = __toESM(require_web(), 1);
 var import_web$5 = __toESM(require_web(), 1);
 var import_web$6 = __toESM(require_web(), 1);
 const _tmpl$ = /*#__PURE__*/ (0, import_web.template)(`<br>`, 1), _tmpl$2 = /*#__PURE__*/ (0, import_web.template)(`<div><!#><!/><!#><!/></div>`, 6);
-const { flux: { dispatcher: FluxDispatcher }, settings: { registerSection }, ui: { Header, HeaderTags, TextBox, Text, showToast, injectCss }, plugin: { store }, http } = shelter;
+const { flux: { dispatcher: FluxDispatcher }, settings: { registerSection }, ui: { Header, HeaderTags, TextBox, Text, SwitchItem, showToast, injectCss }, plugin: { store }, http } = shelter;
 const assetCache = new Map();
 async function resolveExternalImage(appId, url) {
 	const cached = assetCache.get(url);
@@ -710,7 +740,7 @@ const onLoad = async () => {
 		});
 		scheduleReconnect();
 	};
-	showToast({
+	if (store.showConnectNotif) showToast({
 		title: "ShelteRPC",
 		content: "Connected to ShelteRPC server",
 		duration: 3e3
@@ -774,7 +804,15 @@ const settings = () => [
 		}), _el$14, _co$6);
 		(0, import_web$2.effect)(() => (0, import_web$1.className)(_el$10, classes.container));
 		return _el$10;
-	})()
+	})(),
+	(0, import_web$6.createComponent)(SwitchItem, {
+		get value() {
+			return store.showConnectNotif;
+		},
+		onChange: (v) => store.showConnectNotif = v,
+		tooltip: "Show a toast when ShelteRPC successfully connects.",
+		children: "Show Connect Notification"
+	})
 ];
 
 //#endregion

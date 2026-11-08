@@ -77,6 +77,32 @@ var flooed_default = {
 };
 
 //#endregion
+//#region api/clayent.ts
+var clayent_default = {
+	name: "Clayent",
+	invoke: (name, payload) => {
+		return window.Clayent.invoke(name, payload);
+	},
+	event: {
+		emit: (name, payload) => {
+			return window.Clayent.emit(name, payload);
+		},
+		listen: async (name, callback) => {
+			return window.Clayent.listen(name, callback);
+		}
+	},
+	app: { getVersion: () => {
+		return window.Clayent.invoke("get_version");
+	} },
+	process: { relaunch: () => {
+		return window.Clayent.invoke("relaunch");
+	} },
+	apiWindow: { appWindow: { setFullscreen: (isFullscreen) => {
+		return window.Clayent.invoke("set_fullscreen", isFullscreen);
+	} } }
+};
+
+//#endregion
 //#region api/none.ts
 var none_default = {
 	name: "Unknown",
@@ -95,6 +121,7 @@ var none_default = {
 let backendName = "None";
 if (window.Dorion) backendName = "Dorion";
 else if (window.Flooed) backendName = "Flooed";
+else if (window.Clayent) backendName = "Clayent";
 let backendObj;
 switch (backendName) {
 	case "Dorion":
@@ -102,6 +129,9 @@ switch (backendName) {
 		break;
 	case "Flooed":
 		backendObj = flooed_default;
+		break;
+	case "Clayent":
+		backendObj = clayent_default;
 		break;
 	default:
 		backendObj = none_default;
@@ -237,12 +267,12 @@ function t(key, replace) {
 //#endregion
 //#region plugins/dorion-theme-browser/components/ThemeCard.tsx.scss
 const classes$1 = {
-	"name": "JQAzuG_name",
+	"installButton": "JQAzuG_installButton",
+	"info": "JQAzuG_info",
 	"contents": "JQAzuG_contents",
 	"themeCard": "JQAzuG_themeCard",
 	"thumbnail": "JQAzuG_thumbnail",
-	"installButton": "JQAzuG_installButton",
-	"info": "JQAzuG_info"
+	"name": "JQAzuG_name"
 };
 const css$1 = `.JQAzuG_themeCard {
   text-align: left;
@@ -396,14 +426,14 @@ const themeInstallationModel = async (link, name) => {
 //#endregion
 //#region plugins/dorion-theme-browser/components/ThemePage.tsx.scss
 const classes = {
-	"shead": "gqruia_shead",
-	"pageBtn": "gqruia_pageBtn",
-	"sortSection": "gqruia_sortSection",
-	"bot16": "gqruia_bot16",
 	"searchBox": "gqruia_searchBox",
-	"themeCards": "gqruia_themeCards",
+	"sortSection": "gqruia_sortSection",
 	"pages": "gqruia_pages",
-	"pagesOuter": "gqruia_pagesOuter"
+	"themeCards": "gqruia_themeCards",
+	"shead": "gqruia_shead",
+	"pagesOuter": "gqruia_pagesOuter",
+	"bot16": "gqruia_bot16",
+	"pageBtn": "gqruia_pageBtn"
 };
 const css = `.gqruia_shead {
   margin-top: 16px;

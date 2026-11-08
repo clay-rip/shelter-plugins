@@ -522,12 +522,12 @@ var loader = {
 //#endregion
 //#region plugins/inline-css/components/Editor.scss
 const classes$1 = {
-	"ceditor": "alHKPa_ceditor",
+	"glyph-margin": "alHKPa_glyph-margin",
 	"controls": "alHKPa_controls",
 	"monaco-editor": "alHKPa_monaco-editor",
-	"popout": "alHKPa_popout",
 	"line-numbers": "alHKPa_line-numbers",
-	"glyph-margin": "alHKPa_glyph-margin"
+	"popout": "alHKPa_popout",
+	"ceditor": "alHKPa_ceditor"
 };
 const css$1 = `.alHKPa_ceditor {
   border-radius: 5px;
@@ -626,13 +626,13 @@ const Popout = () => (0, import_web$22.getNextElement)(_tmpl$$3);
 //#endregion
 //#region plugins/inline-css/components/Window.scss
 const classes = {
-	"window": "EVeMMG_window",
-	"resize": "EVeMMG_resize",
+	"exit": "EVeMMG_exit",
 	"content": "EVeMMG_content",
 	"topbar": "EVeMMG_topbar",
-	"exit": "EVeMMG_exit",
 	"inner": "EVeMMG_inner",
-	"main": "EVeMMG_main"
+	"resize": "EVeMMG_resize",
+	"main": "EVeMMG_main",
+	"window": "EVeMMG_window"
 };
 const css = `.EVeMMG_window {
   z-index: 99999;

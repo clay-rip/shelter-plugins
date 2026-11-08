@@ -83,6 +83,32 @@ var flooed_default = {
 };
 
 //#endregion
+//#region api/clayent.ts
+var clayent_default = {
+	name: "Clayent",
+	invoke: (name, payload) => {
+		return window.Clayent.invoke(name, payload);
+	},
+	event: {
+		emit: (name, payload) => {
+			return window.Clayent.emit(name, payload);
+		},
+		listen: async (name, callback) => {
+			return window.Clayent.listen(name, callback);
+		}
+	},
+	app: { getVersion: () => {
+		return window.Clayent.invoke("get_version");
+	} },
+	process: { relaunch: () => {
+		return window.Clayent.invoke("relaunch");
+	} },
+	apiWindow: { appWindow: { setFullscreen: (isFullscreen) => {
+		return window.Clayent.invoke("set_fullscreen", isFullscreen);
+	} } }
+};
+
+//#endregion
 //#region api/none.ts
 var none_default = {
 	name: "Unknown",
@@ -101,6 +127,7 @@ var none_default = {
 let backendName = "None";
 if (window.Dorion) backendName = "Dorion";
 else if (window.Flooed) backendName = "Flooed";
+else if (window.Clayent) backendName = "Clayent";
 let backendObj;
 switch (backendName) {
 	case "Dorion":
@@ -108,6 +135,9 @@ switch (backendName) {
 		break;
 	case "Flooed":
 		backendObj = flooed_default;
+		break;
+	case "Clayent":
+		backendObj = clayent_default;
 		break;
 	default:
 		backendObj = none_default;
@@ -154,14 +184,14 @@ function t(key, replace) {
 //#endregion
 //#region plugins/dorion-custom-keybinds/components/Keybinds.tsx.scss
 const classes$2 = {
-	"keybindsBanner": "Zz-Z3G_keybindsBanner",
+	"keybindRestartButton": "Zz-Z3G_keybindRestartButton",
 	"keybindSection": "Zz-Z3G_keybindSection",
-	"header": "Zz-Z3G_header",
-	"keybindsSwitch": "Zz-Z3G_keybindsSwitch",
 	"keybindsButton": "Zz-Z3G_keybindsButton",
-	"keybindRestartCard": "Zz-Z3G_keybindRestartCard",
+	"header": "Zz-Z3G_header",
 	"keybindsHeader": "Zz-Z3G_keybindsHeader",
-	"keybindRestartButton": "Zz-Z3G_keybindRestartButton"
+	"keybindsSwitch": "Zz-Z3G_keybindsSwitch",
+	"keybindRestartCard": "Zz-Z3G_keybindRestartCard",
+	"keybindsBanner": "Zz-Z3G_keybindsBanner"
 };
 const css$2 = `.Zz-Z3G_keybindSection {
   flex-direction: column;
@@ -230,13 +260,13 @@ const css$2 = `.Zz-Z3G_keybindSection {
 //#endregion
 //#region plugins/dorion-custom-keybinds/components/KeybindSection.tsx.scss
 const classes$1 = {
+	"actionSection": "QTLdLq_actionSection",
 	"note": "QTLdLq_note",
 	"keybindSection": "QTLdLq_keybindSection",
-	"keybindRoot": "QTLdLq_keybindRoot",
-	"actionSection": "QTLdLq_actionSection",
+	"divider": "QTLdLq_divider",
 	"keybindArea": "QTLdLq_keybindArea",
 	"removeButton": "QTLdLq_removeButton",
-	"divider": "QTLdLq_divider"
+	"keybindRoot": "QTLdLq_keybindRoot"
 };
 const css$1 = `.QTLdLq_divider {
   margin-top: 16px;
@@ -297,12 +327,12 @@ const css$1 = `.QTLdLq_divider {
 //#endregion
 //#region components/KeybindInput.tsx.scss
 const classes = {
-	"keybindPlaceholder": "N-HDcq_keybindPlaceholder",
-	"keybindButton": "N-HDcq_keybindButton",
-	"keybindContainer": "N-HDcq_keybindContainer",
 	"recording": "N-HDcq_recording",
+	"pulse": "N-HDcq_pulse",
+	"keybindButton": "N-HDcq_keybindButton",
 	"keybindInput": "N-HDcq_keybindInput",
-	"pulse": "N-HDcq_pulse"
+	"keybindContainer": "N-HDcq_keybindContainer",
+	"keybindPlaceholder": "N-HDcq_keybindPlaceholder"
 };
 const css = `.N-HDcq_keybindContainer {
   background: var(--background-base-lowest);
