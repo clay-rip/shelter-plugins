@@ -5,15 +5,22 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 # Shamelessly yoinked from https://github.com/ioj4/shelter-plugins/blob/master/.github/workflows/deploy.yml
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -33,16 +40,40 @@ jobs:
       - name: Copy additional files
         run: |
           cp README.md dist/README.md
-          printf -- "---\npermalink: /404.html\n---\n" > dist/404.md
-          printf -- ">You are somewhere you probably shouldn't be. If you meant to install a plugin, copy the link into Shelter\n\n" >> dist/404.md
-          printf -- "remote_theme: dracula/gh-pages\n" > dist/_config.yml
-          cat README.md >> dist/404.md
+          cp README.md dist/404.md
 
-        # Documentation: https://github.com/peaceiris/actions-gh-pages
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # Makes it so the md files in the previous step get processed by GitHub Pages
-          enable_jekyll: true
+          ruby-version: "3.3"
+          bundler-cache: true
+          working-directory: .pages
+
+      - name: Setup Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        working-directory: .pages
+        run: >-
+          bundle exec jekyll build
+          --source ../dist
+          --destination ../_site
+          --config _config.yml
+          --baseurl "${{ steps.pages.outputs.base_path }}"
+        env:
+          JEKYLL_ENV: production
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

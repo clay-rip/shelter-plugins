@@ -1,0 +1,32 @@
+title: Clayent Shelter plugins
+description: >-
+  Shelter plugins for Clayent.
+
+repository: clay-rip/shelter-plugins
+
+theme: jekyll-theme-primer
+
+markdown: kramdown
+kramdown:
+  input: GFM
+
+plugins:
+  - jekyll-gfm-admonitions
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-github-metadata
+  - jekyll-seo-tag
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+optional_front_matter:
+  remove_originals: true
+
+exclude:
+  - node_modules/
+  - .sass-cache/
+  - .jekyll-cache/
