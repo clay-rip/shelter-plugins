@@ -35,14 +35,14 @@ var require_web = __commonJS({ "solid-js/web"(exports, module) {
 //#endregion
 //#region plugins/clayent-titlebar/index.scss
 const classes = {
-	"topmin": "xNjbPa_topmin",
-	"dorion_topbar": "xNjbPa_dorion_topbar",
 	"topright": "xNjbPa_topright",
 	"topmax": "xNjbPa_topmax",
-	"maximized": "xNjbPa_maximized",
-	"svgmax": "xNjbPa_svgmax",
 	"svgunmax": "xNjbPa_svgunmax",
-	"topclose": "xNjbPa_topclose"
+	"topclose": "xNjbPa_topclose",
+	"topmin": "xNjbPa_topmin",
+	"dorion_topbar": "xNjbPa_dorion_topbar",
+	"svgmax": "xNjbPa_svgmax",
+	"maximized": "xNjbPa_maximized"
 };
 const css = `.xNjbPa_dorion_topbar {
   background-color: var(--background-base-lowest);

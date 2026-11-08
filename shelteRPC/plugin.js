@@ -170,16 +170,16 @@ const timestampToRelative = (timestamp) => {
 //#endregion
 //#region plugins/shelteRPC/components/GameCard.scss
 const classes$2 = {
-	"gameCardInfo": "zS7Qtq_gameCardInfo",
-	"trash": "zS7Qtq_trash",
-	"lastPlayedTimestamp": "zS7Qtq_lastPlayedTimestamp",
-	"gameCard": "zS7Qtq_gameCard",
 	"cardNone": "zS7Qtq_cardNone",
+	"gameCard": "zS7Qtq_gameCard",
+	"lastPlayedTimestamp": "zS7Qtq_lastPlayedTimestamp",
+	"gameCardInfo": "zS7Qtq_gameCardInfo",
 	"cardPlayed": "zS7Qtq_cardPlayed",
-	"cardPlaying": "zS7Qtq_cardPlaying",
-	"gameCardName": "zS7Qtq_gameCardName",
 	"gameCardLastPlayed": "zS7Qtq_gameCardLastPlayed",
-	"gameCardIcons": "zS7Qtq_gameCardIcons"
+	"cardPlaying": "zS7Qtq_cardPlaying",
+	"trash": "zS7Qtq_trash",
+	"gameCardIcons": "zS7Qtq_gameCardIcons",
+	"gameCardName": "zS7Qtq_gameCardName"
 };
 const css$2 = `.zS7Qtq_gameCard {
   width: 100%;
@@ -363,11 +363,11 @@ var GameCard_default = (props) => {
 //#endregion
 //#region plugins/shelteRPC/components/RegisteredGames.scss
 const classes$1 = {
-	"addIt": "yVnOSq_addIt",
-	"modalhead": "yVnOSq_modalhead",
 	"description": "yVnOSq_description",
+	"tophead": "yVnOSq_tophead",
 	"shead": "yVnOSq_shead",
-	"tophead": "yVnOSq_tophead"
+	"modalhead": "yVnOSq_modalhead",
+	"addIt": "yVnOSq_addIt"
 };
 const css$1 = `.yVnOSq_description {
   margin-top: 8px;
